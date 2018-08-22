@@ -25,7 +25,7 @@ class dv_comp_render(object):
 
         args = parser.parse_args(args=args)
 
-        context = {x[0]: x[1] for x in args.config}
+        context = { args.config[x-1] : args.config[x] for x in range(1,len(args.config),2) }
 
         #
         if not args.outfile:
@@ -60,4 +60,3 @@ if __name__ == "__main__":
 
     dv_render = dv_comp_render()
     dv_render.render_from_args()
-

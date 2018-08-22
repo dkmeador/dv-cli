@@ -72,6 +72,14 @@ class dv_cli:
         ''' Dv_cli env <envname> '''
         self.project.add_env(self.subcmd_args)
 
+    def command_basetest(self):
+        ''' Dv_cli basetest <envname> '''
+        self.project.add_basetest(self.subcmd_args)
+
+    def command_test(self):
+        ''' Dv_cli basetest <envname> '''
+        self.project.add_test(self.subcmd_args)    
+
     def command_add(self):
         ''' Dv_cli add <agent/uvc> <env/uvc> [-inst instance_name]
         '''

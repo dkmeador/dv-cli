@@ -21,6 +21,7 @@ class dv_project:
                     'agents'     : {},
                     'interfaces' : {},
                     'envs'       : {},
+                    'basetest'   : None,
                     'tests'      : {}
                     }
             # Write JSON file
@@ -49,36 +50,76 @@ class dv_project:
         self.data['interfaces']['interface1'] = { }
 
     def add_agent(self, args):
-        parser = AP()
-        parser.add_argument(
-            '--name', '-n', metavar=('NAME'), action='store',
-            dest='name', required=True, help="provide the name of the template"
-        )
+        parser = self.create_commom_argparse()
+
 #        parser.add_argument(
 #            '--template', '-t', metavar=('FILE'), action='store_const',
 #            dest='template', required=False, help="provide the name of the template"
 #        )
-        parser.add_argument(
-            '--package', '-p', metavar=('PKG'), action='store',
-            dest='package', required=False, help="provide the name of the template else defaults to <name>_pkg"
-        )
-        parser.add_argument(
-            '--set', '-s', nargs=2, metavar=('KEY', 'VALUE'), action='append', default=[],
-            dest='config', help='Override config KEY with VALUE expression'
-        )
 
         pargs = parser.parse_args(args=args)
 
-        context = {x[0]: x[1] for x in pargs.config}
+        # Convert list of list pairs to a dict
+        config_dict = {x[0] : x[1] for x in pargs.config}
 
         if (not any(self.data)):
             self.data = self.read_project()
 
-        self.data['agents'][pargs.name] = { 'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
-                                           'children' : [],
-                                                  }
+        self.data['agents'][pargs.name] = { 'name' : pargs.name,
+                                            'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
+                                            'children' : [],
+                                            'config'   : config_dict
+                                          }
 
     def add_env(self,args):
+        parser = self.create_commom_argparse()
+        pargs = parser.parse_args(args=args)
+
+        if (not any(self.data)):
+            self.data = self.read_project()
+
+        self.data['envs'][pargs.name] = {'name' : pargs.name,
+                                           'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
+                                           'children' : [],
+                                         }
+
+    def add_test(self,args):
+        parser = self.create_commom_argparse()
+        pargs = parser.parse_args(args=args)
+
+        if (not any(self.data)):
+            self.data = self.read_project()
+        self.data['tests'][pargs.name] = { 'name' : pargs.name,
+                                           'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
+                                     'children' : [],
+                                     'parent' : "uvm_test"
+                                    }
+
+    def add_basetest(self,args):
+        parser = self.create_commom_argparse()
+        pargs = parser.parse_args(args=args)
+
+        if (not any(self.data)):
+            self.data = self.read_project()
+
+        self.data['basetest'] = { 'name' : pargs.name,
+                                  'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
+                                  'children' : [],
+                                  'parent' : "uvm_test"
+                                }
+
+        #parser = self.create_commom_argparse()
+        #pargs = parser.parse_args(args=args)
+#
+#        if (not any(self.data)):
+#            self.data = self.read_project()
+#        self.data['basetests'][pargs.name] = { 'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
+#                                           'children' : [],
+#                                #           'parent' : "uvm_test"
+#                                         }
+
+
+    def create_commom_argparse(self):
         parser = AP()
         parser.add_argument(
             '--name', '-n', metavar=('NAME'), action='store',
@@ -92,22 +133,13 @@ class dv_project:
             '--set', '-s', nargs=2, metavar=('KEY', 'VALUE'), action='append', default=[],
             dest='config', help='Override config KEY with VALUE expression'
         )
+        return parser
 
-        pargs = parser.parse_args(args=args)
-
+    def print_project(self):
         if (not any(self.data)):
             self.data = self.read_project()
+        pass
 
-        self.data['agents'][pargs.name] = {'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
-                                           'children' : [],
-                                         }
-
-    def add_test(self):
-        if (not any(self.data)):
-            self.self.data = self.read_project()
-        self.data['tests']['test1'] = { 'package': 'test1_pkg',
-                                     'parent' : "uvm_test"
-                                    }
     def write_on_exit(self):
         if (any(self.data)):
             self.write_project();
