@@ -53,9 +53,6 @@ class dv_cli:
         #dv_render.render_from_args(['-t', 'uvm_agent_sequencer.svh']+self.subcmd_args)
         #dv_render.render_from_args(['-t', 'uvm_agent_pkg.svh']+self.subcmd_args)
 
-    def command_build_test(self):
-        dv_render = dv_comp_render.dv_comp_render()
-        dv_render.render_from_args(['-t', 'uvm_test.svh']+self.subcmd_args)
 
     def command_init(self):
         ''' The initialize subcommand creates an initial a project configuration file
@@ -64,26 +61,16 @@ class dv_cli:
         self.project.init_project(self.subcmd_args)
 
 
-    def command_agent(self):
-        ''' <agentname> [options] [-item item_name]'''
-        self.project.add_agent(self.subcmd_args)
-
-    def command_env(self):
-        ''' Dv_cli env <envname> '''
-        self.project.add_env(self.subcmd_args)
-
-    def command_basetest(self):
-        ''' Dv_cli basetest <envname> '''
-        self.project.add_basetest(self.subcmd_args)
-
-    def command_test(self):
-        ''' Dv_cli basetest <envname> '''
-        self.project.add_test(self.subcmd_args)    
+    def command_new(self):
+        ''' Dv_cli add <agent/uvc> <env/uvc> [-inst instance_name]
+        '''
+        self.project.command_new(self.subcmd_args)
 
     def command_add(self):
         ''' Dv_cli add <agent/uvc> <env/uvc> [-inst instance_name]
         '''
-        pass
+        self.project.command_add(self.subcmd_args)
+
 
     def command_build(self):
         '''

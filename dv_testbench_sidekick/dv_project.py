@@ -18,11 +18,11 @@ class dv_project:
             sys.exit("Project file already exists:" + self.fullpath)
         else:
             self.data = {'about'      : {'project' : "my_project"},
-                    'agents'     : {},
                     'interfaces' : {},
-                    'envs'       : {},
-                    'basetest'   : None,
-                    'tests'      : {}
+                    'components' : {},
+                    'basetests'  : {},
+                    'tests'      : {},
+                    'objects'    : {}
                     }
             # Write JSON file
             self.write_project()
@@ -44,90 +44,97 @@ class dv_project:
             fp = open(self.fullpath, 'r', encoding='utf8')
             return json.load(fp)
 
-    def add_interface(self):
-        if (not any(self.data)):
-            self.data = self.read_project()
-        self.data['interfaces']['interface1'] = { }
 
-    def add_agent(self, args):
+    def command_new(self,args):
+        '''
+            Add a new object or component to the project
+        '''
         parser = self.create_commom_argparse()
-
-#        parser.add_argument(
-#            '--template', '-t', metavar=('FILE'), action='store_const',
-#            dest='template', required=False, help="provide the name of the template"
-#        )
 
         pargs = parser.parse_args(args=args)
 
+        if (not any(self.data)):
+            self.data = self.read_project()
+
+        self.add_to_project(pargs)
+
+
+    def add_to_project(self,pargs):
         # Convert list of list pairs to a dict
         config_dict = {x[0] : x[1] for x in pargs.config}
 
-        if (not any(self.data)):
-            self.data = self.read_project()
+        # defaults
+        data_ref    = self.data
+        parent_name = "uvm_object"
+        package_name = pargs.name + '_pkg' if (pargs.package is None) else pargs.package
 
-        self.data['agents'][pargs.name] = { 'name' : pargs.name,
-                                            'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
-                                            'children' : [],
-                                            'config'   : config_dict
-                                          }
+        if (pargs.kind == "basetest"):
+            parent_name = "uvm_test" if (not  pargs.parent) else pargs.parent;
+            data_ref = self.data['basetests']
+        elif (pargs.kind == "test"):
+            parent_name = "uvm_test" if (not  pargs.parent) else pargs.parent;  # fixme: default to the pkg of parent
+            data_ref = self.data['tests']
+        elif (pargs.kind == "agent"):
+            parent_name = "uvm_agent" if (not  pargs.parent) else pargs.parent;
+            data_ref = self.data['components']
+        elif (pargs.kind == "env"):
+            parent_name = "uvm_env" if (not  pargs.parent) else pargs.parent;
+            data_ref = self.data['components']
+        elif (pargs.kind == "interface"):
+            parent_name = None #interfaces do not support inheritance and can't have a parent
+            package_name = None
+            data_ref = self.data['interfaces']
+        else:
+            data_ref = self.data['objects']
 
-    def add_env(self,args):
-        parser = self.create_commom_argparse()
-        pargs = parser.parse_args(args=args)
-
-        if (not any(self.data)):
-            self.data = self.read_project()
-
-        self.data['envs'][pargs.name] = {'name' : pargs.name,
-                                           'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
-                                           'children' : [],
-                                         }
-
-    def add_test(self,args):
-        parser = self.create_commom_argparse()
-        pargs = parser.parse_args(args=args)
-
-        if (not any(self.data)):
-            self.data = self.read_project()
-        self.data['tests'][pargs.name] = { 'name' : pargs.name,
-                                           'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
-                                     'children' : [],
-                                     'parent' : "uvm_test"
-                                    }
-
-    def add_basetest(self,args):
-        parser = self.create_commom_argparse()
-        pargs = parser.parse_args(args=args)
-
-        if (not any(self.data)):
-            self.data = self.read_project()
-
-        self.data['basetest'] = { 'name' : pargs.name,
-                                  'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
+        data_ref[pargs.name] = { 'name' : pargs.name,
+                                  'kind' : pargs.kind,
+                                  'package': package_name,
                                   'children' : [],
-                                  'parent' : "uvm_test"
+                                  'parent' : parent_name,
+                                  'config'   : config_dict,
+                                  'exists' : False
                                 }
+        return data_ref[pargs.name]
 
-        #parser = self.create_commom_argparse()
-        #pargs = parser.parse_args(args=args)
-#
-#        if (not any(self.data)):
-#            self.data = self.read_project()
-#        self.data['basetests'][pargs.name] = { 'package': pargs.name + '_pkg' if (pargs.package is None) else pargs.package,
-#                                           'children' : [],
-#                                #           'parent' : "uvm_test"
-#                                         }
+
+
+    def command_add(self,args):
+        '''
+            Add an existing object or component to the project
+        '''
+        parser = self.create_commom_argparse()
+
+        pargs = parser.parse_args(args=args)
+
+        if (not any(self.data)):
+            self.data = self.read_project()
+
+        obj_ref = self.add_to_project(pargs)
+
+        obj_ref['exists'] = True
+
+
+
 
 
     def create_commom_argparse(self):
         parser = AP()
         parser.add_argument(
             '--name', '-n', metavar=('NAME'), action='store',
-            dest='name', required=True, help="provide the name of the template"
+            dest='name', required=True, help="provide the name of the verification component"
+        )
+        parser.add_argument(
+            '--kind', '-k', metavar=('KIND'), action='store',
+            dest='kind', required=True, help="provide the kind of the verification component"
         )
         parser.add_argument(
             '--package', '-p', metavar=('PKG'), action='store',
             dest='package', required=False, help="provide the name of the template else defaults to <name>_pkg"
+        )
+        parser.add_argument(
+            '--parent', '-r', metavar=('PARENT'), action='store',
+            dest='parent', required=False, help="provide the name of the parent class"
         )
         parser.add_argument(
             '--set', '-s', nargs=2, metavar=('KEY', 'VALUE'), action='append', default=[],
