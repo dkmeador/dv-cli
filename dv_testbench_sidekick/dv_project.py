@@ -17,9 +17,11 @@ class dv_project:
         if ( os.path.isfile(self.fullpath) ):
             sys.exit("Project file already exists:" + self.fullpath)
         else:
-            self.data = {'about'      : {'project' : "my_project"},
+            self.data = {'about'      : {'project' : "my_project",
+                                         'template_dir' : os.path.dirname(os.path.realpath(__file__)) + '/templates',
+                                         'subdir_per_pkg' : True
+                                        },
                     'interfaces' : {},
-                    'components' : {},
                     'basetests'  : {},
                     'tests'      : {},
                     'objects'    : {}
@@ -59,6 +61,35 @@ class dv_project:
         self.add_to_project(pargs)
 
 
+    def command_add(self,args):
+        '''
+            Add an existing object or component to the project
+        '''
+        parser = self.create_commom_argparse()
+        parser.add_argument(
+            'file', metavar='FILE',
+             help="provide the file name of the verification component"
+        )
+        pargs = parser.parse_args(args=args)
+
+        if (not any(self.data)):
+            self.data = self.read_project()
+
+        obj_ref = self.add_to_project(pargs)
+
+        obj_ref['exists'] = True
+
+    def command_inst(self,args):
+        parser = self.create_connect_argparse()
+
+        pargs = parser.parse_args(args=args)
+
+        if (not any(self.data)):
+            self.data = self.read_project()
+
+        self.data['objects'][pargs.inst_loc]['children'][pargs.inst_name] = {'name' : pargs.name, 'num_insts' :pargs.inst_num}
+
+
     def add_to_project(self,pargs):
         # Convert list of list pairs to a dict
         config_dict = {x[0] : x[1] for x in pargs.config}
@@ -76,10 +107,10 @@ class dv_project:
             data_ref = self.data['tests']
         elif (pargs.kind == "agent"):
             parent_name = "uvm_agent" if (not  pargs.parent) else pargs.parent;
-            data_ref = self.data['components']
+            data_ref = self.data['objects']
         elif (pargs.kind == "env"):
             parent_name = "uvm_env" if (not  pargs.parent) else pargs.parent;
-            data_ref = self.data['components']
+            data_ref = self.data['objects']
         elif (pargs.kind == "interface"):
             parent_name = None #interfaces do not support inheritance and can't have a parent
             package_name = None
@@ -90,7 +121,7 @@ class dv_project:
         data_ref[pargs.name] = { 'name' : pargs.name,
                                   'kind' : pargs.kind,
                                   'package': package_name,
-                                  'children' : [],
+                                  'children' : {},
                                   'parent' : parent_name,
                                   'config'   : config_dict,
                                   'exists' : False
@@ -99,27 +130,10 @@ class dv_project:
 
 
 
-    def command_add(self,args):
-        '''
-            Add an existing object or component to the project
-        '''
-        parser = self.create_commom_argparse()
+    def create_commom_argparse(self, parser = None):
+        if (parser == None):
+            parser = AP()
 
-        pargs = parser.parse_args(args=args)
-
-        if (not any(self.data)):
-            self.data = self.read_project()
-
-        obj_ref = self.add_to_project(pargs)
-
-        obj_ref['exists'] = True
-
-
-
-
-
-    def create_commom_argparse(self):
-        parser = AP()
         parser.add_argument(
             '--name', '-n', metavar=('NAME'), action='store',
             dest='name', required=True, help="provide the name of the verification component"
@@ -142,10 +156,47 @@ class dv_project:
         )
         return parser
 
+    def create_connect_argparse(self,parser = None):
+        '''
+            inst foo --in bar [-as foo_inst] [-parameter myparm myparmvalue]
+        '''
+        if (parser == None):
+            parser = AP()
+
+        parser.add_argument('name', metavar='NAME', #nargs='+',
+                             help='a name of the object type to instance')
+
+        parser.add_argument(
+            '--in', '-i', metavar=('INST_LOCATION'), action='store',
+            dest='inst_loc', required=True, help="provide the name of the class to place the instance"
+        )
+        parser.add_argument(
+            '--as', '-a', metavar=('INST_NAME'), action='store',
+            dest='inst_name', required=True, help="provide the name of the instance"
+        )
+        parser.add_argument(
+            '--num', '-n', metavar=('NUM'), action='store',
+            dest='inst_num', required=False,
+            help="provide the number of instance as an integer 'q' for a queue or 'd' for dynamic array"
+        )
+
+        return parser
+
     def print_project(self):
         if (not any(self.data)):
             self.data = self.read_project()
-        pass
+        print ("Objects:")
+        for id,desc in self.data['objects'].items():
+            print (desc['package'] + "::" + id + " of type " + desc['kind'] + ", extended from " + desc['parent'])
+
+        print ("Interfaces:")
+        for id,desc in self.data['interfaces'].items():
+            print (id)
+
+        print ("Tests:")
+        for id,desc in self.data['tests'].items():
+            print (desc['package'] + "::" + id + " of type " + desc['kind'] + ", extended from " + desc['parent'])
+
 
     def write_on_exit(self):
         if (any(self.data)):

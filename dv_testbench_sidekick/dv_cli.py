@@ -71,6 +71,8 @@ class dv_cli:
         '''
         self.project.command_add(self.subcmd_args)
 
+    def command_inst(self):
+        self.project.command_inst(self.subcmd_args)
 
     def command_build(self):
         '''
@@ -80,7 +82,8 @@ class dv_cli:
 
     def command_print(self):
         ''' Dv_cli print '''
-        pass
+        self.project.print_project()
+
 
     def command_rm(self):
         ''' Dv_cli rm <agent/uvc> <env/uvc> '''
