@@ -19,6 +19,7 @@ class dv_project:
         else:
             self.data = {'about'      : {'project' : "my_project",
                                          'template_dir' : os.path.dirname(os.path.realpath(__file__)) + '/templates',
+                                         'build_dir'    : './output',
                                          'subdir_per_pkg' : True
                                         },
                     'interfaces' : {},

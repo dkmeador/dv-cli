@@ -1,22 +1,12 @@
 
 {## Set some useful default variables ##}
 
-{%- macro comment_bar(level="h1") %}
-{%- if level == "h1" %}
-  {{- "//" ~ '*'*70 }}
-{%- elif level == "h2" %}
-  {{- "//" ~ '/'*70 }}
-{%- elif level == "h3" %}
-  {{- "//" ~ '-'*70 }}
-{%- elif level == "h4" %}
-  {{- "//" ~ '+'*70 }}
-{%- else %}
-  {{- "//" ~ '*'*70 }}
-{%- endif %}
-{%- endmacro %}
-
-{%- macro comment_bar(pre='//', mid='/'*70, post='') %}
-  {{- pre ~ mid ~ post }}
+{%- macro comment_bar(text='', pre='//', mid='/', post='', mid_repeat=70) -%}
+  {{ pre ~ mid*mid_repeat ~ post }}
+  {% if text -%}
+  {{ pre ~ text }}
+  {{ pre ~ mid*mid_repeat ~ post }}
+  {%- endif %}
 {%- endmacro %}
 
 {## Format a string as comments ##}

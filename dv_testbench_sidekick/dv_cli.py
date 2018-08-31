@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 import dv_comp_render
 import dv_project
+import dv_build
 import sys
 from argparse import ArgumentParser as AP
 '''
@@ -78,7 +79,14 @@ class dv_cli:
         '''
         Dv_cli build [-dest target_dir] // <- build specified tb
         '''
-        pass
+
+        parser = AP()
+        parser.add_argument('name', metavar='NAME', #nargs='+',
+                             help='a name of the object type to instance')
+        pargs = parser.parse_args(args=self.subcmd_args)
+
+        dvbuild = dv_build.dv_build();
+        dvbuild.command_build(pargs.name)
 
     def command_print(self):
         ''' Dv_cli print '''
